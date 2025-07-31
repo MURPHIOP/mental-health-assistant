@@ -1,11 +1,12 @@
 # app.py
-import nltk
-nltk.download('punkt')
+
 import streamlit as st
 from datetime import date
 from db import create_table, add_log, get_logs
 from nrclex import NRCLex
 from random import choice
+import nltk
+nltk.download('punkt')
 
 # Initialize DB
 create_table()
@@ -64,46 +65,13 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.markdown("<div class='title'>🤔 Smart Mental Health Assistant</div>", unsafe_allow_html=True)
-st.markdown("<div class='subheader'>How are you feeling today? Type or speak your thoughts below.</div>", unsafe_allow_html=True)
+st.markdown("<div class='subheader'>How are you feeling today? Type your thoughts below.</div>", unsafe_allow_html=True)
 
 # Input Section
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
-# Voice input HTML/JS block (uses browser mic)
-st.markdown("""
-    <input type="text" id="voiceInput" placeholder="Tap the mic and speak..." 
-           style="width:100%; padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc;">
-    <button onclick="startDictation()" 
-            style="margin-top:8px; padding:6px 12px; font-size:16px; border-radius:5px;">🎙️ Start Voice Input</button>
-    <script>
-    function startDictation() {
-        if (window.hasOwnProperty('webkitSpeechRecognition')) {
-            var recognition = new webkitSpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = "en-US";
-            recognition.start();
-
-            recognition.onresult = function(e) {
-                document.getElementById('voiceInput').value = e.results[0][0].transcript;
-                document.getElementById('voiceInput').dispatchEvent(new Event('input'));
-                recognition.stop();
-            };
-
-            recognition.onerror = function(e) {
-                recognition.stop();
-            };
-        } else {
-            alert("Speech recognition not supported on this browser.");
-        }
-    }
-    </script>
-""", unsafe_allow_html=True)
-
-# Sync input to Streamlit
-user_text = st.text_area("🧾 Describe your feelings:", value=st.session_state.user_input, key="text_input_box")
-st.session_state.user_input = user_text
+st.session_state.user_input = st.text_area("🧾 Describe your feelings:", value=st.session_state.user_input)
 
 # Daily Prompt
 daily_prompts = [
