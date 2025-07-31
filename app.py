@@ -53,6 +53,12 @@ st.markdown(f"""
             background-color: {card_bg};
             color: {text_color};
         }}
+        .footer {{
+            text-align: center;
+            margin-top: 3em;
+            font-size: 0.9em;
+            color: #888888;
+        }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -66,18 +72,17 @@ if 'user_input' not in st.session_state:
 st.session_state.user_input = st.text_area("Enter your feelings:", value=st.session_state.user_input)
 
 if st.button("🎤 Use Voice Input"):
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.info("Listening... please speak now.")
-        audio = recognizer.listen(source)
     try:
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            st.info("🎙️ Listening...")
+            audio = recognizer.listen(source)
         spoken_text = recognizer.recognize_google(audio)
-        st.success(f"You said: {spoken_text}")
         st.session_state.user_input = spoken_text
-    except sr.UnknownValueError:
-        st.error("Sorry, could not understand your voice.")
-    except sr.RequestError as e:
-        st.error(f"API error: {e}")
+        st.success(f"✅ You said: {spoken_text}")
+    except Exception as e:
+        st.warning("⚠️ Voice input may not work in this browser or cloud environment.")
+        st.info(f"Error: {e}")
 
 # Daily Prompt
 daily_prompts = [
@@ -135,3 +140,5 @@ for log in logs:
         </div>
     """, unsafe_allow_html=True)
 
+# Footer
+st.markdown("<div class='footer'>MADE BY SHREYAN MITRA</div>", unsafe_allow_html=True)
