@@ -21,7 +21,6 @@ A web-based mood tracking and journaling app that detects emotions from user inp
 
 ## 📦 Project Structure
 
-```
 
 mental-health-assistant/
 │
