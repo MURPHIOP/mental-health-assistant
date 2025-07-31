@@ -5,21 +5,48 @@ from db import create_table, add_log, get_logs
 from streamlit_lottie import st_lottie
 from textblob import TextBlob
 import requests
+import streamlit_authenticator as stauth
+
+# ---------- LOGIN SYSTEM ----------
+import yaml
+from yaml.loader import SafeLoader
+from pathlib import Path
+
+# Sample config (you can expand this)
+config = {
+    "credentials": {
+        "usernames": {
+            "shreyan": {
+                "name": "Shreyan Mitra",
+                "password": stauth.Hasher(["pass123"]).generate()[0]
+            }
+        }
+    },
+    "cookie": {"expiry_days": 30, "key": "auth", "name": "login"},
+    "preauthorized": {"emails": []}
+}
+
+authenticator = stauth.Authenticate(
+    config["credentials"],
+    config["cookie"]["name"],
+    config["cookie"]["key"],
+    config["cookie"]["expiry_days"]
+)
+
+name, authentication_status, username = authenticator.login("Login", "main")
 
 # ---------- SETUP ----------
 st.set_page_config(page_title="Mental Health Assistant", layout="wide")
 create_table()
 
-# Load Lottie animation
+# ---------- LOAD ASSETS ----------
 def load_lottie_url(url):
     r = requests.get(url)
-    if r.status_code != 200:
-        return None
-    return r.json()
+    return r.json() if r.status_code == 200 else None
 
 lottie_json = load_lottie_url("https://assets1.lottiefiles.com/packages/lf20_tutvdkg0.json")
 
-# ---------- STYLE ----------
+# ---------- STYLING ----------
 st.markdown("""
     <style>
         body { font-family: 'Segoe UI', sans-serif; }
@@ -29,85 +56,90 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# ---------- SIDEBAR ----------
-mode = st.sidebar.radio("📋 Navigation", ["📝 Mood Journal", "📊 Mood Dashboard"])
-st.sidebar.markdown("---")
-st.sidebar.caption("Made by Shreyan Mitra")
+# ---------- AUTH CHECK ----------
+if authentication_status:
+    authenticator.logout("Logout", "sidebar")
 
-# ---------- EMOTION MAPPING ----------
-def classify_emotion(text):
-    lower = text.lower()
-    if any(word in lower for word in ["happy", "joy", "excited", "grateful", "love"]):
-        return "Joy", "Keep smiling! 😊"
-    elif any(word in lower for word in ["sad", "down", "cry", "depressed", "unhappy", "hopeless"]):
-        return "Sadness", "It's okay to feel low. Talk to a friend or take a walk. 🌧️"
-    elif any(word in lower for word in ["angry", "mad", "furious", "rage", "annoyed"]):
-        return "Anger", "Try some deep breathing or time away. 🔥"
-    elif any(word in lower for word in ["anxious", "worried", "nervous", "panic", "afraid"]):
-        return "Fear", "Ground yourself. You're safe now. 🌱"
-    elif any(word in lower for word in ["disgust", "gross", "nasty"]):
-        return "Disgust", "Take a break from the situation. 🧼"
-    elif any(word in lower for word in ["surprise", "shocked", "unexpected", "wow"]):
-        return "Surprise", "Sometimes surprises can be good! 🎉"
-    elif any(word in lower for word in ["bored", "meh", "tired", "lazy"]):
-        return "Boredom", "Try something new or creative. 🎨"
-    else:
-        blob = TextBlob(text)
-        polarity = blob.sentiment.polarity
-        if polarity > 0.5:
-            return "Joy", "That’s wonderful to hear! 🌟"
-        elif polarity > 0:
-            return "Content", "Nice and calm. Keep going. 😊"
-        elif polarity < -0.5:
-            return "Depressed", "Please take care. Talk to someone you trust. 💙"
-        elif polarity < 0:
-            return "Sadness", "Be kind to yourself today. 🌧️"
+    # ---------- SIDEBAR ----------
+    mode = st.sidebar.radio("📋 Navigation", ["📝 Mood Journal", "📊 Mood Dashboard"])
+    st.sidebar.markdown("---")
+    st.sidebar.caption("Made by Shreyan Mitra")
+
+    # ---------- EMOTION DETECTION ----------
+    def classify_emotion(text):
+        lower = text.lower()
+        if any(word in lower for word in ["happy", "joy", "excited", "grateful", "love"]):
+            return "Joy", "Keep smiling! 😊"
+        elif any(word in lower for word in ["sad", "down", "cry", "depressed", "unhappy", "hopeless"]):
+            return "Sadness", "It's okay to feel low. Talk to a friend or take a walk. 🌧️"
+        elif any(word in lower for word in ["angry", "mad", "furious", "rage", "annoyed"]):
+            return "Anger", "Try some deep breathing or time away. 🔥"
+        elif any(word in lower for word in ["anxious", "worried", "nervous", "panic", "afraid"]):
+            return "Fear", "Ground yourself. You're safe now. 🌱"
+        elif any(word in lower for word in ["disgust", "gross", "nasty"]):
+            return "Disgust", "Take a break from the situation. 🧼"
+        elif any(word in lower for word in ["surprise", "shocked", "unexpected", "wow"]):
+            return "Surprise", "Sometimes surprises can be good! 🎉"
+        elif any(word in lower for word in ["bored", "meh", "tired", "lazy"]):
+            return "Boredom", "Try something new or creative. 🎨"
         else:
-            return "Neutral", "Try journaling or a mindful break. 📝"
+            blob = TextBlob(text)
+            polarity = blob.sentiment.polarity
+            if polarity > 0.5:
+                return "Joy", "That’s wonderful to hear! 🌟"
+            elif polarity > 0:
+                return "Content", "Nice and calm. Keep going. 😊"
+            elif polarity < -0.5:
+                return "Depressed", "Please take care. Talk to someone you trust. 💙"
+            elif polarity < 0:
+                return "Sadness", "Be kind to yourself today. 🌧️"
+            else:
+                return "Neutral", "Try journaling or a mindful break. 📝"
 
-# ---------- MOOD JOURNAL ----------
-if mode == "📝 Mood Journal":
-    st.markdown("<div class='header'>🧠 Mental Health Assistant</div>", unsafe_allow_html=True)
-    st.markdown("<div class='subheader'>Describe your current mood or situation.</div>", unsafe_allow_html=True)
+    # ---------- JOURNAL PAGE ----------
+    if mode == "📝 Mood Journal":
+        st.markdown("<div class='header'>🧠 Mental Health Assistant</div>", unsafe_allow_html=True)
+        st.markdown("<div class='subheader'>Describe your current mood or situation.</div>", unsafe_allow_html=True)
 
-    st_lottie(lottie_json, height=200)
+        st_lottie(lottie_json, height=200)
+        user_input = st.text_area("✍️ Your thoughts here:", placeholder="E.g., I'm feeling anxious and overwhelmed today...")
 
-    user_input = st.text_area("✍️ Your thoughts here:", placeholder="E.g., I'm feeling anxious and overwhelmed today...")
+        if st.button("Analyze Mood"):
+            if user_input.strip():
+                emotion, tip = classify_emotion(user_input)
+                st.success(f"### Detected Emotion: **{emotion}**")
+                st.info(f"💡 Suggestion: *{tip}*")
+                add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input, username)
+            else:
+                st.warning("Please enter your thoughts to analyze.")
 
-    if st.button("Analyze Mood"):
-        if user_input.strip():
-            emotion, tip = classify_emotion(user_input)
-            st.success(f"### Detected Emotion: **{emotion}**")
-            st.info(f"💡 Suggestion: *{tip}*")
-            add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input)
+    # ---------- DASHBOARD ----------
+    elif mode == "📊 Mood Dashboard":
+        st.markdown("<div class='header'>📈 Mood Tracker</div>", unsafe_allow_html=True)
+        st.markdown("<div class='subheader'>View your emotion trends over time.</div>", unsafe_allow_html=True)
+
+        logs = get_logs(username)
+
+        if logs:
+            dates, emotions, texts = zip(*[(log[1], log[2], log[3]) for log in logs])
+            chart = px.histogram(x=dates, color=emotions, title="Mood History", labels={"x": "Date", "color": "Emotion"})
+            st.plotly_chart(chart, use_container_width=True)
+
+            st.markdown("### 💬 Mood Entries")
+            for d, e, t in zip(dates, emotions, texts):
+                _, tip = classify_emotion(t)
+                st.markdown(f"""
+                    <div class='card'>
+                        <b>📅 {d}</b> — <b>{e}</b><br>
+                        <i>{t}</i><br>
+                        <small>💡 {tip}</small>
+                    </div>
+                """, unsafe_allow_html=True)
         else:
-            st.warning("Please enter your thoughts to analyze.")
+            st.info("You haven't logged any moods yet.")
 
-# ---------- MOOD DASHBOARD ----------
-elif mode == "📊 Mood Dashboard":
-    st.markdown("<div class='header'>📈 Mood Tracker</div>", unsafe_allow_html=True)
-    st.markdown("<div class='subheader'>View your emotion trends over time.</div>", unsafe_allow_html=True)
-
-    logs = get_logs()
-
-    if logs:
-        dates, emotions, texts = zip(*[(log[1], log[2], log[3]) for log in logs])
-        chart = px.histogram(x=dates, color=emotions, title="Mood History", labels={"x": "Date", "color": "Emotion"})
-        st.plotly_chart(chart, use_container_width=True)
-
-        st.markdown("### 💬 Mood Entries")
-        for d, e, t in zip(dates, emotions, texts):
-            _, tip = classify_emotion(t)
-            st.markdown(f"""
-                <div class='card'>
-                    <b>📅 {d}</b> — <b>{e}</b><br>
-                    <i>{t}</i><br>
-                    <small>💡 {tip}</small>
-                </div>
-            """, unsafe_allow_html=True)
-    else:
-        st.info("You haven't logged any moods yet.")
-
+else:
+    st.error("Please log in to continue.")
 
 
 

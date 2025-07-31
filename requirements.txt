@@ -1,4 +1,7 @@
 streamlit
-textblob
+streamlit-authenticator
 plotly
+textblob
 streamlit-lottie
+requests
+
