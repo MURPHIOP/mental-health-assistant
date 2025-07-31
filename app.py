@@ -1,5 +1,6 @@
 # app.py
-
+import nltk
+nltk.download('punkt')
 import streamlit as st
 from datetime import date
 from db import create_table, add_log, get_logs
