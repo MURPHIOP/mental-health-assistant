@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import date
 from db import create_table, add_log, get_logs
+from textblob import TextBlob
 from random import choice
 
 # Initialize DB
@@ -60,15 +61,15 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 st.markdown("<div class='title'>🤔 Smart Mental Health Assistant</div>", unsafe_allow_html=True)
-st.markdown("<div class='subheader'>How are you feeling today? Speak or type your thoughts below.</div>", unsafe_allow_html=True)
+st.markdown("<div class='subheader'>How are you feeling today? Type your thoughts below.</div>", unsafe_allow_html=True)
 
-# Text Area
+# Input
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
-st.session_state.user_input = st.text_area("🧾 Describe your feelings (you can also use the microphone below):", value=st.session_state.user_input)
+st.session_state.user_input = st.text_area("🧾 Describe your feelings:", value=st.session_state.user_input)
 
-# Daily Prompt
+# Prompt
 daily_prompts = [
     "What's one thing you're grateful for today?",
     "Did anything make you smile recently?",
@@ -78,97 +79,82 @@ daily_prompts = [
 ]
 st.info(f"💡 Daily Prompt: **{choice(daily_prompts)}**")
 
-# Voice Input (Web-based)
-st.markdown("""
-    <script>
-        function startDictation() {
-            if (window.hasOwnProperty('webkitSpeechRecognition')) {
-                var recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = "en-US";
-                recognition.start();
-                recognition.onresult = function(e) {
-                    var text = e.results[0][0].transcript;
-                    window.parent.postMessage({ type: 'voice_input', text: text }, '*');
-                    recognition.stop();
-                };
-                recognition.onerror = function(e) {
-                    recognition.stop();
-                    alert('Voice recognition error. Please try again.');
-                };
-            } else {
-                alert("Your browser does not support Speech Recognition.");
-            }
-        }
-    </script>
-    <button onclick="startDictation()" style="padding: 10px 20px; font-size: 16px;">🎤 Speak</button>
-""", unsafe_allow_html=True)
-
-st.markdown("---")
-
-# Listen to voice input result
-st.markdown("""
-    <script>
-        window.addEventListener("message", (event) => {
-            if (event.data?.type === "voice_input") {
-                const textarea = window.parent.document.querySelector("textarea");
-                if (textarea) {
-                    textarea.value = event.data.text;
-                    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-                }
-            }
-        });
-    </script>
-""", unsafe_allow_html=True)
-
-# Emotion Detection
-def detect_emotion(text):
-    text = text.lower()
-    emotion_keywords = {
-        "Happy": ["joy", "excited", "grateful", "satisfied", "cheerful", "thankful", "content", "blessed"],
-        "Sad": ["lonely", "disappointed", "unhappy", "regret", "gloomy", "tearful", "depressed"],
-        "Angry": ["mad", "furious", "frustrated", "annoyed", "irritated", "rage"],
-        "Fear": ["scared", "afraid", "anxious", "terrified", "nervous", "panic", "worried"],
-        "Love": ["love", "loved", "caring", "affection", "compassion", "adore"],
-        "Guilt": ["guilty", "remorse", "sorry", "ashamed"],
-        "Surprised": ["surprised", "shocked", "amazed", "astonished", "speechless"],
-        "Confused": ["confused", "uncertain", "doubt", "lost"],
-        "Hopeful": ["hopeful", "optimistic", "confident", "bright future"],
-        "Bored": ["bored", "uninterested", "tired", "dull"],
-        "Neutral": []
-    }
-
-    match_count = {}
-    for emotion, keywords in emotion_keywords.items():
-        count = sum(word in text for word in keywords)
-        if count:
-            match_count[emotion] = count
-
-    if match_count:
-        detected = max(match_count, key=match_count.get)
-        confidence = round((match_count[detected] / sum(match_count.values())) * 100, 2)
-    else:
-        detected = "Neutral"
-        confidence = 0.0
-
-    return detected, confidence
+# Emotion keyword mapping
+emotion_keywords = {
+    "happy": "Happy",
+    "joy": "Joyful",
+    "excited": "Excited",
+    "glad": "Glad",
+    "calm": "Calm",
+    "peaceful": "Calm",
+    "relaxed": "Relaxed",
+    "satisfied": "Content",
+    "content": "Content",
+    "hopeful": "Hopeful",
+    "motivated": "Motivated",
+    "confident": "Confident",
+    "grateful": "Grateful",
+    "loved": "Loved",
+    "lonely": "Lonely",
+    "bored": "Bored",
+    "tired": "Tired",
+    "sad": "Sad",
+    "depressed": "Depressed",
+    "upset": "Upset",
+    "angry": "Angry",
+    "furious": "Angry",
+    "frustrated": "Frustrated",
+    "anxious": "Anxious",
+    "worried": "Worried",
+    "nervous": "Nervous",
+    "scared": "Fearful",
+    "afraid": "Fearful",
+    "guilty": "Guilty",
+    "embarrassed": "Embarrassed",
+    "jealous": "Jealous",
+    "ashamed": "Ashamed",
+    "shy": "Shy"
+}
 
 # Analyze
 if st.button("🧠 Analyze Mood"):
-    user_input = st.session_state.user_input
+    user_input = st.session_state.user_input.lower()
     if user_input.strip():
-        emotion, confidence = detect_emotion(user_input)
+        matched_emotion = None
+        for keyword in emotion_keywords:
+            if keyword in user_input:
+                matched_emotion = emotion_keywords[keyword]
+                break
+
+        if matched_emotion:
+            emotion = matched_emotion
+            score = 100.0
+        else:
+            analysis = TextBlob(user_input)
+            polarity = analysis.sentiment.polarity
+
+            if polarity > 0.5:
+                emotion = "Happy"
+            elif polarity > 0:
+                emotion = "Content"
+            elif polarity == 0:
+                emotion = "Neutral"
+            elif polarity > -0.5:
+                emotion = "Sad"
+            else:
+                emotion = "Depressed"
+
+            score = round(abs(polarity) * 100, 2)
 
         col1, col2 = st.columns([1, 3])
         with col1:
             st.markdown("### 😊")
         with col2:
-            st.markdown(f"### Detected Emotion: **{emotion}** ({confidence}%)")
+            st.markdown(f"### Detected Emotion: **{emotion}** ({score}%)")
 
         add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input)
     else:
-        st.warning("Please enter or speak something to analyze.")
+        st.warning("Please enter something to analyze.")
 
 # Logs
 st.markdown("---")
