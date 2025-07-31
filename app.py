@@ -1,18 +1,12 @@
+# app.py
+
 import streamlit as st
 from datetime import date
 from db import create_table, add_log, get_logs
-from nrclex import NRCLex
+from textblob import TextBlob
 from random import choice
-import nltk
-from nltk import data
 
-# Ensure required NLTK data is available
-try:
-    data.find('tokenizers/punkt')
-except LookupError:
-    nltk.download('punkt')
-
-# Initialize database
+# Initialize DB
 create_table()
 
 # Theme setup
@@ -33,7 +27,6 @@ else:
     card_bg = "#ffffff"
 
 st.set_page_config(page_title="Mental Health Assistant", layout="wide")
-
 st.markdown(f"""
     <style>
         body {{
@@ -69,17 +62,16 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
-# Header
 st.markdown("<div class='title'>🤔 Smart Mental Health Assistant</div>", unsafe_allow_html=True)
 st.markdown("<div class='subheader'>How are you feeling today? Type your thoughts below.</div>", unsafe_allow_html=True)
 
-# Text input
+# Input
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
 st.session_state.user_input = st.text_area("🧾 Describe your feelings:", value=st.session_state.user_input)
 
-# Daily prompt
+# Prompt
 daily_prompts = [
     "What's one thing you're grateful for today?",
     "Did anything make you smile recently?",
@@ -87,46 +79,49 @@ daily_prompts = [
     "What small win did you have today?",
     "What do you need right now?"
 ]
-today_prompt = choice(daily_prompts)
-st.info(f"💡 Daily Reflection Prompt: **{today_prompt}**")
+st.info(f"💡 Daily Prompt: **{choice(daily_prompts)}**")
 
-# Analyze input
+# Analyze
 if st.button("🧠 Analyze Mood"):
-    user_input = st.session_state.user_input.strip()
-    if user_input:
-        text_object = NRCLex(user_input)
-        emotion_scores = text_object.raw_emotion_scores
+    user_input = st.session_state.user_input
+    if user_input.strip():
+        analysis = TextBlob(user_input)
+        polarity = analysis.sentiment.polarity
 
-        if emotion_scores:
-            dominant_emotion = max(emotion_scores, key=emotion_scores.get)
-            score = emotion_scores[dominant_emotion]
-            total = sum(emotion_scores.values())
-            confidence = round((score / total) * 100, 2)
+        if polarity > 0.5:
+            emotion = "Happy"
+        elif polarity > 0:
+            emotion = "Content"
+        elif polarity == 0:
+            emotion = "Neutral"
+        elif polarity > -0.5:
+            emotion = "Sad"
         else:
-            dominant_emotion = "Neutral"
-            confidence = 0.0
+            emotion = "Depressed"
+
+        score = round(abs(polarity) * 100, 2)
 
         col1, col2 = st.columns([1, 3])
         with col1:
             st.markdown("### 😊")
         with col2:
-            st.markdown(f"### Detected Emotion: **{dominant_emotion.capitalize()}** ({confidence}%)")
+            st.markdown(f"### Detected Emotion: **{emotion}** ({score}%)")
 
-        add_log(date.today().strftime("%Y-%m-%d"), dominant_emotion, user_input)
+        add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input)
     else:
-        st.warning("Please enter your thoughts above.")
+        st.warning("Please enter something to analyze.")
 
-# Mood logs
+# Logs
 st.markdown("---")
 st.markdown("### 📅 Mood History")
-
 logs = get_logs()
+
 for log in logs:
     _, timestamp, emotion, text = log
     st.markdown(f"""
         <div class='log-box'>
             <b>🗓️ {timestamp}</b><br>
-            <b>😶 Emotion:</b> <i>{emotion.capitalize()}</i><br>
+            <b>😶 Emotion:</b> <i>{emotion}</i><br>
             <b>📝 Entry:</b><br> {text}
         </div>
     """, unsafe_allow_html=True)
