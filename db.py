@@ -1,32 +1,21 @@
 import sqlite3
 
-def create_table():
-    conn = sqlite3.connect("mood.db")
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS moodlog (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user TEXT,
-            date TEXT,
-            emotion TEXT,
-            message TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+conn = sqlite3.connect('moodlog.db', check_same_thread=False)
+c = conn.cursor()
 
-def add_log(date, emotion, message, user):
-    conn = sqlite3.connect("mood.db")
-    c = conn.cursor()
-    c.execute("INSERT INTO moodlog (user, date, emotion, message) VALUES (?, ?, ?, ?)",
+def create_table():
+    c.execute('''CREATE TABLE IF NOT EXISTS moodlogs (
+                    user TEXT,
+                    date TEXT,
+                    emotion TEXT,
+                    message TEXT
+                )''')
+
+def add_log(user, date, emotion, message):
+    c.execute('INSERT INTO moodlogs (user, date, emotion, message) VALUES (?, ?, ?, ?)',
               (user, date, emotion, message))
     conn.commit()
-    conn.close()
 
 def get_logs(user):
-    conn = sqlite3.connect("mood.db")
-    c = conn.cursor()
-    c.execute("SELECT * FROM moodlog WHERE user = ?", (user,))
-    data = c.fetchall()
-    conn.close()
-    return data
+    c.execute('SELECT * FROM moodlogs WHERE user=? ORDER BY date DESC', (user,))
+    return c.fetchall()

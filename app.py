@@ -9,6 +9,7 @@ import requests
 # ---------- SETUP ----------
 st.set_page_config(page_title="Mental Health Assistant", layout="wide")
 create_table()
+user = "guest"
 
 # Load Lottie animation
 def load_lottie_url(url):
@@ -80,7 +81,7 @@ if mode == "📝 Mood Journal":
             emotion, tip = classify_emotion(user_input)
             st.success(f"### Detected Emotion: **{emotion}**")
             st.info(f"💡 Suggestion: *{tip}*")
-            add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input)
+            add_log(user, date.today().strftime("%Y-%m-%d"), emotion, user_input)
         else:
             st.warning("Please enter your thoughts to analyze.")
 
@@ -89,7 +90,7 @@ elif mode == "📊 Mood Dashboard":
     st.markdown("<div class='header'>📈 Mood Tracker</div>", unsafe_allow_html=True)
     st.markdown("<div class='subheader'>View your emotion trends over time.</div>", unsafe_allow_html=True)
 
-    logs = get_logs()
+    logs = get_logs(user)
 
     if logs:
         dates, emotions, texts = zip(*[(log[1], log[2], log[3]) for log in logs])
