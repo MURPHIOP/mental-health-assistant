@@ -5,30 +5,6 @@ from db import create_table, add_log, get_logs
 from streamlit_lottie import st_lottie
 from textblob import TextBlob
 import requests
-import streamlit_authenticator as stauth
-
-# --- User Auth Setup ---
-names = ["Shreyan Mitra"]
-usernames = ["shreyan"]
-passwords = ["pass123"]
-hashed_pw = stauth.Hasher(passwords).generate()
-
-credentials = {
-    "usernames": {
-        usernames[0]: {
-            "name": names[0],
-            "password": hashed_pw[0]
-        }
-    }
-}
-
-authenticator = stauth.Authenticate(credentials, "mental_app", "auth", cookie_expiry_days=1)
-name, auth_status, username = authenticator.login(form_name="Login", location="main")
-
-# Exit if not logged in
-if not auth_status:
-    st.warning("Please log in to continue.")
-    st.stop()
 
 # ---------- SETUP ----------
 st.set_page_config(page_title="Mental Health Assistant", layout="wide")
@@ -57,7 +33,6 @@ st.markdown("""
 # ---------- SIDEBAR ----------
 mode = st.sidebar.radio("📋 Navigation", ["📝 Mood Journal", "📊 Mood Dashboard"])
 st.sidebar.markdown("---")
-st.sidebar.caption(f"Logged in as: {name}")
 st.sidebar.caption("Made by Shreyan Mitra")
 
 # ---------- EMOTION MAPPING ----------
@@ -136,4 +111,3 @@ elif mode == "📊 Mood Dashboard":
 
 # ---------- FOOTER ----------
 st.markdown("<div class='footer'>Made by Shreyan Mitra</div>", unsafe_allow_html=True)
-
