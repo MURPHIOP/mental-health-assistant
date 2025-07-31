@@ -7,65 +7,71 @@ from textblob import TextBlob
 import requests
 import streamlit_authenticator as stauth
 
-# ---------- LOGIN SYSTEM ----------
-import yaml
-from yaml.loader import SafeLoader
-from pathlib import Path
-
-# Sample config (you can expand this)
+# ---------------- LOGIN CONFIG ---------------- #
 config = {
     "credentials": {
         "usernames": {
             "shreyan": {
                 "name": "Shreyan Mitra",
-                "password": stauth.Hasher(["pass123"]).generate()[0]
+                "password": "$2b$12$KIXFZCnYVvQ2.0U0yU5a0uAhVYZvB2zJkm3SMxE3XpgVkPyxmw38K"  # pass123
             }
         }
     },
-    "cookie": {"expiry_days": 30, "key": "auth", "name": "login"},
-    "preauthorized": {"emails": []}
+    "cookie": {
+        "expiry_days": 30,
+        "key": "auth",
+        "name": "mentalhealth"
+    },
+    "preauthorized": {
+        "emails": []
+    }
 }
 
-authenticator = stauth.Authenticate(
-    config["credentials"],
-    config["cookie"]["name"],
-    config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
-)
+authenticator = stauth.Authenticate(config['credentials'], config['cookie']['name'],
+                                    config['cookie']['key'], config['cookie']['expiry_days'])
 
-name, authentication_status, username = authenticator.login("Login", "main")
+name, auth_status, username = authenticator.login("Login", "main")
 
-# ---------- SETUP ----------
-st.set_page_config(page_title="Mental Health Assistant", layout="wide")
-create_table()
+if auth_status is False:
+    st.error("❌ Incorrect username or password")
+elif auth_status is None:
+    st.warning("👤 Please enter your username and password")
+elif auth_status:
 
-# ---------- LOAD ASSETS ----------
-def load_lottie_url(url):
-    r = requests.get(url)
-    return r.json() if r.status_code == 200 else None
+    # ---------------- SETUP ---------------- #
+    st.set_page_config(page_title="Mental Health Assistant", layout="wide")
+    create_table()
 
-lottie_json = load_lottie_url("https://assets1.lottiefiles.com/packages/lf20_tutvdkg0.json")
+    def load_lottie_url(url):
+        r = requests.get(url)
+        if r.status_code != 200:
+            return None
+        return r.json()
 
-# ---------- STYLING ----------
-st.markdown("""
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; }
-        .header { font-size: 2.5em; color: #3b82f6; font-weight: bold; }
-        .subheader { font-size: 1.1em; color: #6b7280; margin-bottom: 20px; }
-        .card { background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-    </style>
-""", unsafe_allow_html=True)
+    lottie_json = load_lottie_url("https://assets1.lottiefiles.com/packages/lf20_tutvdkg0.json")
 
-# ---------- AUTH CHECK ----------
-if authentication_status:
-    authenticator.logout("Logout", "sidebar")
+    st.markdown("""
+        <style>
+            body { font-family: 'Segoe UI', sans-serif; }
+            .header { font-size: 2.5em; color: #3b82f6; font-weight: bold; }
+            .subheader { font-size: 1.1em; color: #6b7280; margin-bottom: 20px; }
+            .card {
+                background: #ffffff;
+                border-radius: 12px;
+                padding: 20px;
+                margin-bottom: 20px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # ---------- SIDEBAR ----------
+    # ---------------- SIDEBAR ---------------- #
     mode = st.sidebar.radio("📋 Navigation", ["📝 Mood Journal", "📊 Mood Dashboard"])
     st.sidebar.markdown("---")
-    st.sidebar.caption("Made by Shreyan Mitra")
+    st.sidebar.caption("🔒 Logged in as: " + name)
+    st.sidebar.caption("👨‍💻 Made by Shreyan Mitra")
 
-    # ---------- EMOTION DETECTION ----------
+    # ---------------- EMOTION CLASSIFIER ---------------- #
     def classify_emotion(text):
         lower = text.lower()
         if any(word in lower for word in ["happy", "joy", "excited", "grateful", "love"]):
@@ -96,12 +102,12 @@ if authentication_status:
             else:
                 return "Neutral", "Try journaling or a mindful break. 📝"
 
-    # ---------- JOURNAL PAGE ----------
+    # ---------------- JOURNAL PAGE ---------------- #
     if mode == "📝 Mood Journal":
         st.markdown("<div class='header'>🧠 Mental Health Assistant</div>", unsafe_allow_html=True)
         st.markdown("<div class='subheader'>Describe your current mood or situation.</div>", unsafe_allow_html=True)
-
         st_lottie(lottie_json, height=200)
+
         user_input = st.text_area("✍️ Your thoughts here:", placeholder="E.g., I'm feeling anxious and overwhelmed today...")
 
         if st.button("Analyze Mood"):
@@ -109,16 +115,16 @@ if authentication_status:
                 emotion, tip = classify_emotion(user_input)
                 st.success(f"### Detected Emotion: **{emotion}**")
                 st.info(f"💡 Suggestion: *{tip}*")
-                add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input, username)
+                add_log(date.today().strftime("%Y-%m-%d"), emotion, user_input)
             else:
                 st.warning("Please enter your thoughts to analyze.")
 
-    # ---------- DASHBOARD ----------
+    # ---------------- DASHBOARD ---------------- #
     elif mode == "📊 Mood Dashboard":
         st.markdown("<div class='header'>📈 Mood Tracker</div>", unsafe_allow_html=True)
         st.markdown("<div class='subheader'>View your emotion trends over time.</div>", unsafe_allow_html=True)
 
-        logs = get_logs(username)
+        logs = get_logs()
 
         if logs:
             dates, emotions, texts = zip(*[(log[1], log[2], log[3]) for log in logs])
@@ -137,9 +143,5 @@ if authentication_status:
                 """, unsafe_allow_html=True)
         else:
             st.info("You haven't logged any moods yet.")
-
-else:
-    st.error("Please log in to continue.")
-
 
 
