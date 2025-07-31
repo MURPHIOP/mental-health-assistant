@@ -1,24 +1,28 @@
-# app.py
-
 import streamlit as st
 from datetime import date
 from db import create_table, add_log, get_logs
 from nrclex import NRCLex
 from random import choice
 import nltk
-nltk.download('punkt')
+from nltk import data
 
-# Initialize DB
+# Ensure required NLTK data is available
+try:
+    data.find('tokenizers/punkt')
+except LookupError:
+    nltk.download('punkt')
+
+# Initialize database
 create_table()
 
-# Session Theme Setup
+# Theme setup
 if 'theme' not in st.session_state:
     st.session_state.theme = 'Light'
 
 theme = st.selectbox("🌃 Theme", ['Light', 'Dark'], index=0 if st.session_state.theme == 'Light' else 1)
 st.session_state.theme = theme
 
-# CSS Styling
+# Styling
 if theme == "Dark":
     bg_color = "#0e1117"
     text_color = "#ffffff"
@@ -29,6 +33,7 @@ else:
     card_bg = "#ffffff"
 
 st.set_page_config(page_title="Mental Health Assistant", layout="wide")
+
 st.markdown(f"""
     <style>
         body {{
@@ -64,16 +69,17 @@ st.markdown(f"""
     </style>
 """, unsafe_allow_html=True)
 
+# Header
 st.markdown("<div class='title'>🤔 Smart Mental Health Assistant</div>", unsafe_allow_html=True)
 st.markdown("<div class='subheader'>How are you feeling today? Type your thoughts below.</div>", unsafe_allow_html=True)
 
-# Input Section
+# Text input
 if 'user_input' not in st.session_state:
     st.session_state.user_input = ""
 
 st.session_state.user_input = st.text_area("🧾 Describe your feelings:", value=st.session_state.user_input)
 
-# Daily Prompt
+# Daily prompt
 daily_prompts = [
     "What's one thing you're grateful for today?",
     "Did anything make you smile recently?",
@@ -84,10 +90,10 @@ daily_prompts = [
 today_prompt = choice(daily_prompts)
 st.info(f"💡 Daily Reflection Prompt: **{today_prompt}**")
 
-# Analyze Button
+# Analyze input
 if st.button("🧠 Analyze Mood"):
-    user_input = st.session_state.user_input
-    if user_input.strip():
+    user_input = st.session_state.user_input.strip()
+    if user_input:
         text_object = NRCLex(user_input)
         emotion_scores = text_object.raw_emotion_scores
 
@@ -110,11 +116,11 @@ if st.button("🧠 Analyze Mood"):
     else:
         st.warning("Please enter your thoughts above.")
 
-# Mood Logs
+# Mood logs
 st.markdown("---")
 st.markdown("### 📅 Mood History")
-logs = get_logs()
 
+logs = get_logs()
 for log in logs:
     _, timestamp, emotion, text = log
     st.markdown(f"""
