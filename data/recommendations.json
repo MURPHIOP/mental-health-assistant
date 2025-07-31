@@ -1,0 +1,32 @@
+{
+  "joy": [
+    "Enjoy the moment and maybe share it with someone!",
+    "Treat yourself to something nice today 😊",
+    "Use this high energy to start a new hobby."
+  ],
+  "sadness": [
+    "Try writing your thoughts down in a journal.",
+    "Listen to calming music or meditate for 5 minutes.",
+    "Reach out to a friend or loved one."
+  ],
+  "anger": [
+    "Take deep breaths — inhale... exhale slowly.",
+    "Walk away from the situation and return with a clear mind.",
+    "Write down what made you angry, then tear up the paper."
+  ],
+  "fear": [
+    "You're stronger than your fear. Reflect on past wins.",
+    "Ground yourself — 5 things you see, 4 you touch...",
+    "Talk to someone you trust about what’s worrying you."
+  ],
+  "love": [
+    "Send a kind message to someone you care about ❤️",
+    "Reflect on a happy memory with someone you love.",
+    "Appreciate the connections in your life."
+  ],
+  "surprise": [
+    "Take a deep breath and process what's new.",
+    "Embrace the unexpected — life is full of surprises!",
+    "Use your surprise as inspiration to create something."
+  ]
+}
