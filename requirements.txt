@@ -1,3 +1,4 @@
 streamlit
 textblob
 plotly
+streamlit-lottie
